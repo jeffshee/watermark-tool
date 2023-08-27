@@ -1,29 +1,13 @@
 @echo off
 setlocal enabledelayedexpansion
 
-:: Display folder selection dialog for source folder
-set "tempfile=%temp%\folderpicker.vbs"
-echo Set objShell = CreateObject("Shell.Application") > "%tempfile%"
-echo Set objFolder = objShell.BrowseForFolder(0, "Select source folder", 0, 0) >> "%tempfile%"
-echo if objFolder is nothing then >> "%tempfile%"
-echo     wscript.echo "No folder selected" >> "%tempfile%"
-echo else >> "%tempfile%"
-echo     wscript.echo objFolder.self.path >> "%tempfile%"
-echo end if >> "%tempfile%"
-for /f "delims=" %%I in ('cscript //nologo "%tempfile%"') do set "source_folder=%%I"
-del "%tempfile%"
+:: Get source folder
+call :SelectFolder "Select source folder"
+set "source_folder=%folder_path%"
 
-:: Display folder selection dialog for destination folder
-set "tempfile=%temp%\folderpicker.vbs"
-echo Set objShell = CreateObject("Shell.Application") > "%tempfile%"
-echo Set objFolder = objShell.BrowseForFolder(0, "Select destination folder", 0, 0) >> "%tempfile%"
-echo if objFolder is nothing then >> "%tempfile%"
-echo     wscript.echo "No folder selected" >> "%tempfile%"
-echo else >> "%tempfile%"
-echo     wscript.echo objFolder.self.path >> "%tempfile%"
-echo end if >> "%tempfile%"
-for /f "delims=" %%I in ('cscript //nologo "%tempfile%"') do set "destination_folder=%%I"
-del "%tempfile%"
+:: Get destination folder
+call :SelectFolder "Select destination folder"
+set "destination_folder=%folder_path%"
 
 :: Print selected folder paths
 echo Source folder: %source_folder%
@@ -42,7 +26,7 @@ set "watermark=watermark.png"
 for %%A in ("%source_folder%\*.jpg", "%source_folder%\*.jpeg", "%source_folder%\*.png") do (
     set "input_image=%%~A"
     set "output_image=%destination_folder%\%%~nA%%~xA"
-    echo Processing %%~A ...
+    echo Processing %%~A
     for /f "delims=" %%L in ('magick identify -format "image_width=%%w\nimage_height=%%h" "!input_image!"') do set %%L
     echo Input image: width=!image_width!, height=!image_height!
     if !image_width! gtr !image_height! (
@@ -62,3 +46,18 @@ for %%A in ("%source_folder%\*.jpg", "%source_folder%\*.jpeg", "%source_folder%\
 :: Display completion message and wait for user input before quitting
 echo Operation completed. Press any key to quit.
 pause > nul
+exit
+
+:: Display folder selection dialog
+:SelectFolder
+set "tempfile=%temp%\folderpicker.vbs"
+echo Set objShell = CreateObject("Shell.Application") > "%tempfile%"
+echo Set objFolder = objShell.BrowseForFolder(0, "%~1", 0, 0) >> "%tempfile%"
+echo if objFolder is nothing then >> "%tempfile%"
+echo     wscript.echo "No folder selected" >> "%tempfile%"
+echo else >> "%tempfile%"
+echo     wscript.echo objFolder.self.path >> "%tempfile%"
+echo end if >> "%tempfile%"
+for /f "delims=" %%I in ('cscript //nologo "%tempfile%"') do set "folder_path=%%I"
+del "%tempfile%"
+exit /b 0
